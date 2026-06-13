@@ -1,0 +1,7 @@
+{
+  "name": "telemachus-dashboard",
+  "version": "1.0.0",
+  "description": "Live multi-subagent swarm dashboard for Telemachus — one terminal per subagent.",
+  "private": true,
+  "engines": { "node": ">=20" }
+}

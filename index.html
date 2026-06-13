@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Telemachus · Agent Swarm</title>
+<style>
+  :root{
+    --bg:#070a10; --panel:#0c111a; --panel2:#0a0e16; --bar:#0e1420;
+    --bdr:#1c2533; --bdr2:#2a3a52; --txt:#c9d4e3; --dim:#6b7a90; --dim2:#46566c;
+    --cyan:#36d3e0; --green:#39d98a; --amber:#f2b34b; --red:#ff6b6b; --blue:#6aa6ff;
+    --purple:#b48bff;
+    --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:radial-gradient(1200px 700px at 70% -10%,#0d1626 0,var(--bg) 60%);color:var(--txt);
+    font-family:var(--mono);font-size:13px;-webkit-font-smoothing:antialiased}
+  /* top bar */
+  header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:linear-gradient(180deg,#0f1828,#0b111c);
+    border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:5;backdrop-filter:blur(6px)}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
+  .logo .mark{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--cyan),var(--blue));
+    display:grid;place-items:center;color:#04121a;font-weight:900;box-shadow:0 0 16px rgba(54,211,224,.45)}
+  .logo small{color:var(--dim);font-weight:500}
+  .task{flex:1;min-width:0;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .task b{color:var(--txt);font-weight:600}
+  .pill{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;border:1px solid var(--bdr2);
+    background:#0a1320;font-weight:600;white-space:nowrap}
+  .pill .d{width:8px;height:8px;border-radius:50%}
+  .meta{color:var(--dim);display:flex;gap:14px;white-space:nowrap}
+  .meta b{color:var(--txt)}
+  /* grid */
+  #grid{display:grid;gap:12px;padding:14px;align-content:start}
+  .cell{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--bdr);border-radius:10px;
+    overflow:hidden;min-height:200px;box-shadow:0 6px 20px rgba(0,0,0,.35);transition:border-color .2s,box-shadow .2s}
+  .cell.running{border-color:rgba(242,179,75,.45);box-shadow:0 0 0 1px rgba(242,179,75,.10),0 6px 22px rgba(0,0,0,.4)}
+  .cell.done{border-color:rgba(57,217,138,.40)}
+  .cell.failed{border-color:rgba(255,107,107,.45)}
+  .chead{display:flex;align-items:center;gap:9px;padding:8px 11px;background:linear-gradient(180deg,#101a2b,#0c1320);
+    border-bottom:1px solid var(--bdr)}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor}
+  .dot.queued{color:var(--dim);background:var(--dim);box-shadow:none}
+  .dot.running{color:var(--amber);background:var(--amber);animation:pulse 1.1s infinite}
+  .dot.done{color:var(--green);background:var(--green)}
+  .dot.failed{color:var(--red);background:var(--red)}
+  .dot.stopped{color:var(--amber);background:var(--amber)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.32}}
+  .role{font-weight:700;color:#e6edf6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pane-idx{color:var(--dim2);font-weight:700;font-size:11px}
+  .model{margin-left:auto;color:var(--purple);font-size:11px;white-space:nowrap;opacity:.9}
+  .elapsed{color:var(--dim);font-size:11px;min-width:42px;text-align:right}
+  .term{flex:1;overflow-y:auto;padding:9px 11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;
+    background:repeating-linear-gradient(180deg,#0a0e16,#0a0e16 26px,#0b1019 26px,#0b1019 52px)}
+  .term::-webkit-scrollbar{width:8px}.term::-webkit-scrollbar-thumb{background:#1c2738;border-radius:8px}
+  .ln{display:block}
+  .ln.cmd{color:#dfe8f3}.ln.cmd .p{color:var(--cyan);font-weight:700;user-select:none}
+  .ln.out{color:#8ea0b6}
+  .ln.say{color:#bcd2ee}
+  .ln.err{color:var(--red)}
+  .ln.sys{color:var(--dim2);font-style:italic}
+  .role-detail{color:var(--dim);font-size:11px;padding:2px 11px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* result */
+  #result{margin:4px 14px 22px;border:1px solid var(--bdr2);border-radius:10px;background:var(--panel);overflow:hidden;display:none}
+  #result h3{margin:0;padding:11px 14px;background:linear-gradient(180deg,#10221c,#0c1712);border-bottom:1px solid var(--bdr);
+    color:var(--green);font-size:13px}
+  #result pre{margin:0;padding:14px;max-height:46vh;overflow:auto;white-space:pre-wrap;word-break:break-word;color:#cdd9e8}
+  .files{padding:8px 14px;border-top:1px solid var(--bdr);color:var(--dim)}
+  .files b{color:var(--cyan)}
+  /* splash */
+  #splash{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:24px}
+  #splash .card{max-width:560px;color:var(--dim)}
+  #splash h1{color:var(--txt);font-weight:700}
+  .conn{font-size:11px;color:var(--dim2)}
+  code{background:#0a1320;border:1px solid var(--bdr);border-radius:5px;padding:1px 6px;color:var(--cyan)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="mark">T</span> Telemachus <small>swarm</small></div>
+  <div class="task" id="task"></div>
+  <div class="meta" id="meta"></div>
+  <div class="pill" id="pill"><span class="d" style="background:var(--dim)"></span><span id="pillTxt">connecting…</span></div>
+</header>
+<div id="grid"></div>
+<div id="result"><h3>✅ Integrated result</h3><pre id="resultText"></pre><div class="files" id="resultFiles"></div></div>
+<div id="splash"><div class="card">
+  <h1>🐝 Telemachus Agent Swarm</h1>
+  <p>This page renders a live terminal for each subagent in a Telemachus swarm.</p>
+  <p>Start one from Telegram with <code>/swarm &lt;task&gt;</code> (or “use agent swarm …”). Telemachus replies with a link that opens this dashboard wired to that run.</p>
+  <p class="conn">Waiting for a <code>?s=&lt;session&gt;</code> in the URL…</p>
+</div></div>
+
+<script>
+(function(){
+  const qs = new URLSearchParams(location.search);
+  const session = qs.get("s");
+  const grid = document.getElementById("grid");
+  const taskEl = document.getElementById("task");
+  const metaEl = document.getElementById("meta");
+  const pill = document.getElementById("pill"), pillTxt = document.getElementById("pillTxt");
+  const pillDot = pill.querySelector(".d");
+  const resultBox = document.getElementById("result");
+  const resultText = document.getElementById("resultText");
+  const resultFiles = document.getElementById("resultFiles");
+
+  if(!session){ return; }
+  document.getElementById("splash").style.display="none";
+
+  // ── state ──
+  const panes = new Map();           // pane -> {role,detail,model,status,startedAt,endedMs,el,term,elapsedEl,dot}
+  let task="", plannedBy="", phase="planning", startTs=Date.now(), doneMs=0, started=false;
+  let cursor=0, polling=false, connOk=true;
+
+  const COLORS={planning:"--amber",running:"--amber",synthesizing:"--blue",done:"--green",error:"--red"};
+  function setPill(text,key){ pillTxt.textContent=text; const c=getComputedStyle(document.documentElement).getPropertyValue(COLORS[key]||"--dim"); pillDot.style.background=c.trim(); }
+
+  function columns(n){ return n<=1?1 : n<=2?2 : n<=6?3 : n<=12?4 : 5; }
+  function relayout(){
+    const n=panes.size||1;
+    grid.style.gridTemplateColumns=`repeat(${columns(n)},minmax(0,1fr))`;
+    // shrink min-height a touch when there are many panes so more fit
+    const mh = n>12?170 : n>6?185 : 210;
+    for(const p of panes.values()) p.el.style.minHeight=mh+"px";
+  }
+
+  function makeCell(pane,info){
+    const el=document.createElement("div"); el.className="cell queued";
+    el.innerHTML=`<div class="chead">
+        <span class="dot queued"></span>
+        <span class="pane-idx">#${pane+1}</span>
+        <span class="role"></span>
+        <span class="model"></span>
+        <span class="elapsed">0s</span>
+      </div>
+      <div class="role-detail"></div>
+      <div class="term"></div>`;
+    grid.appendChild(el);
+    const obj={ ...info, status:"queued", startedAt:0, el,
+      dot:el.querySelector(".dot"), roleEl:el.querySelector(".role"),
+      modelEl:el.querySelector(".model"), detailEl:el.querySelector(".role-detail"),
+      elapsedEl:el.querySelector(".elapsed"), term:el.querySelector(".term") };
+    obj.roleEl.textContent=info.role||("agent "+(pane+1));
+    obj.modelEl.textContent=info.model||"";
+    obj.detailEl.textContent=info.detail||"";
+    panes.set(pane,obj);
+    relayout();
+    return obj;
+  }
+
+  function line(p,cls,html){
+    const atBottom = p.term.scrollHeight - p.term.scrollTop - p.term.clientHeight < 40;
+    const div=document.createElement("span"); div.className="ln "+cls; div.innerHTML=html;
+    p.term.appendChild(div);
+    // cap DOM size per pane
+    while(p.term.childNodes.length>400) p.term.removeChild(p.term.firstChild);
+    if(atBottom) p.term.scrollTop=p.term.scrollHeight;
+  }
+  const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+  function setStatus(p,status){
+    p.status=status; p.dot.className="dot "+status;
+    p.el.classList.remove("queued","running","done","failed","stopped");
+    p.el.classList.add(status);
+  }
+
+  function apply(ev){
+    switch(ev.type){
+      case "session": task=ev.task; taskEl.innerHTML="<b>Task:</b> "+esc(ev.task); break;
+      case "planning": phase="planning"; setPill("planning · "+esc(ev.model),"planning"); break;
+      case "plan":
+        task=ev.task; plannedBy=ev.plannedBy||""; taskEl.innerHTML="<b>Task:</b> "+esc(ev.task);
+        for(const pi of ev.panes){ if(!panes.has(pi.pane)) makeCell(pi.pane,pi); }
+        phase="running"; started=true;
+        if(ev.note) for(const p of panes.values()) line(p,"sys","ℹ "+esc(ev.note));
+        break;
+      case "assign":{
+        let p=panes.get(ev.pane)||makeCell(ev.pane,ev);
+        p.role=ev.role; p.model=ev.model; p.detail=ev.detail;
+        p.roleEl.textContent=ev.role; p.modelEl.textContent=ev.model; p.detailEl.textContent=ev.detail;
+        p.startedAt=Date.now(); setStatus(p,"running");
+        line(p,"sys","▶ "+esc(ev.role)+"  ·  "+esc(ev.model));
+        break; }
+      case "status":{
+        const p=panes.get(ev.pane); if(!p) break;
+        setStatus(p,ev.status);
+        if(ev.status==="running" && !p.startedAt) p.startedAt=Date.now();
+        if(ev.ms!=null){ p.endedMs=ev.ms; p.elapsedEl.textContent=(ev.ms/1000).toFixed(1)+"s"; }
+        if(ev.error) line(p,"err","✖ "+esc(ev.error));
+        break; }
+      case "cmd":{ const p=panes.get(ev.pane); if(p) line(p,"cmd",'<span class="p">$</span> '+esc(ev.text)); break; }
+      case "output":{ const p=panes.get(ev.pane); if(p){ if(ev.text) line(p,"out",esc(ev.text)); if(ev.ok===false) line(p,"err","[exit "+(ev.exit==null?"?":ev.exit)+"]"); } break; }
+      case "say":{ const p=panes.get(ev.pane); if(p) line(p,"say",esc(ev.text)); break; }
+      case "synth": phase="synthesizing"; setPill("integrating · "+esc(ev.model),"synthesizing"); break;
+      case "result":
+        resultText.textContent=ev.text||"(no output)";
+        resultFiles.innerHTML = (ev.files&&ev.files.length)? "<b>Files:</b> "+ev.files.map(esc).join("  ·  ") : "";
+        resultBox.style.display="block";
+        break;
+      case "done": phase="done"; doneMs=ev.ms||0; setPill((ev.ok?"done":"finished")+" · "+(doneMs/1000).toFixed(1)+"s","done"); break;
+    }
+  }
+
+  function tickMeta(){
+    let running=0,done=0,failed=0;
+    for(const p of panes.values()){ if(p.status==="running")running++; else if(p.status==="done")done++; else if(p.status==="failed"||p.status==="stopped")failed++;
+      if(p.status==="running"&&p.startedAt) p.elapsedEl.textContent=((Date.now()-p.startedAt)/1000).toFixed(0)+"s";
+    }
+    const total = phase==="done"? (doneMs/1000).toFixed(1)+"s" : ((Date.now()-startTs)/1000).toFixed(0)+"s";
+    metaEl.innerHTML = `<span><b>${panes.size}</b> agents</span>`+
+      (running?`<span style="color:var(--amber)">⚙ ${running} running</span>`:"")+
+      (done?`<span style="color:var(--green)">✅ ${done} done</span>`:"")+
+      (failed?`<span style="color:var(--red)">✖ ${failed}</span>`:"")+
+      `<span>⏱ <b>${total}</b></span>`+
+      (connOk?"":`<span style="color:var(--red)">⚠ reconnecting…</span>`);
+  }
+  setInterval(tickMeta,500);
+
+  async function poll(){
+    if(polling) return; polling=true;
+    try{
+      const r=await fetch(`/api/state?s=${encodeURIComponent(session)}&cursor=${cursor}`,{cache:"no-store"});
+      const j=await r.json();
+      connOk = !j.error;
+      if(typeof j.cursor==="number") cursor=j.cursor;
+      if(j.events&&j.events.length){ for(const ev of j.events){ try{apply(ev);}catch(e){} } }
+      if(!started && !j.error) setPill("waiting for swarm…","planning");
+    }catch(e){ connOk=false; }
+    finally{ polling=false; }
+  }
+  setPill("connecting…","planning");
+  poll(); setInterval(poll, 800);
+})();
+</script>
+</body>
+</html>
