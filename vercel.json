@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": { "api/state.js": { "maxDuration": 30 } },
+  "functions": { "api/state.js": { "maxDuration": 30 }, "api/nim.js": { "maxDuration": 300 } },
+  "rewrites": [
+    { "source": "/api/nim/:path*", "destination": "/api/nim?__p=:path*" }
+  ],
   "headers": [
     { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
   ]
