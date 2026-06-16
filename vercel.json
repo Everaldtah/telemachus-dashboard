@@ -1,8 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": { "api/state.js": { "maxDuration": 30 }, "api/nim.js": { "maxDuration": 300 }, "api/fetch.js": { "maxDuration": 60 }, "api/shot.js": { "maxDuration": 60 } },
+  "functions": { "api/state.js": { "maxDuration": 30 }, "api/nim.js": { "maxDuration": 300 }, "api/fetch.js": { "maxDuration": 60 }, "api/shot.js": { "maxDuration": 60 }, "api/moltbook.js": { "maxDuration": 30 } },
   "rewrites": [
-    { "source": "/api/nim/:path*", "destination": "/api/nim?__p=:path*" }
+    { "source": "/api/nim/:path*", "destination": "/api/nim?__p=:path*" },
+    { "source": "/api/moltbook/:path*", "destination": "/api/moltbook?__p=:path*" }
   ],
   "headers": [
     { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
