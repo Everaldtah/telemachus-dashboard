@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": { "api/state.js": { "maxDuration": 30 }, "api/nim.js": { "maxDuration": 300 } },
+  "functions": { "api/state.js": { "maxDuration": 30 }, "api/nim.js": { "maxDuration": 300 }, "api/fetch.js": { "maxDuration": 60 }, "api/shot.js": { "maxDuration": 60 } },
   "rewrites": [
     { "source": "/api/nim/:path*", "destination": "/api/nim?__p=:path*" }
   ],
